@@ -1,8 +1,15 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { PrimaryButton } from "@/components/ui";
 import type { CurrentQuestion } from "@/lib/types";
+
+type SubmitState = "idle" | "loading" | "wrong" | "correct" | "rate_limited";
+
+function prefersReducedMotion() {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+}
 
 export function QuestionCard({
   question,
@@ -12,31 +19,60 @@ export function QuestionCard({
   onSolved: () => void;
 }) {
   const [answer, setAnswer] = useState("");
-  const [state, setState] = useState<"idle" | "loading" | "wrong" | "correct">("idle");
+  const [state, setState] = useState<SubmitState>("idle");
   const [message, setMessage] = useState("");
+  const [autoContinueArmed, setAutoContinueArmed] = useState(false);
+
+  // Reset local UI state whenever a new question is unlocked.
+  useEffect(() => {
+    setAnswer("");
+    setState("idle");
+    setMessage("");
+    setAutoContinueArmed(false);
+  }, [question.questionId]);
+
+  useEffect(() => {
+    if (state !== "correct" || autoContinueArmed) return;
+    setAutoContinueArmed(true);
+    const reduceMotion = prefersReducedMotion();
+    const timer = setTimeout(onSolved, reduceMotion ? 900 : 1800);
+    return () => clearTimeout(timer);
+  }, [state, autoContinueArmed, onSolved]);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (!answer.trim() || state === "loading") return;
+    if (!answer.trim() || state === "loading" || state === "correct") return;
 
     setState("loading");
     setMessage("");
 
-    const response = await fetch("/api/answer/submit", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        questionId: question.questionId,
-        answer
-      })
-    });
+    let response: Response;
+    try {
+      response = await fetch("/api/answer/submit", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          questionId: question.questionId,
+          answer
+        })
+      });
+    } catch {
+      setState("wrong");
+      setMessage("Connection lost. Check your network and try again.");
+      return;
+    }
 
     const data = await response.json().catch(() => ({}));
 
     if (response.ok && data.correct) {
       setState("correct");
       setMessage("CLUE SOLVED — the path opens.");
-      setTimeout(onSolved, 1200);
+      return;
+    }
+
+    if (response.status === 429 || data.code === "RATE_LIMITED") {
+      setState("rate_limited");
+      setMessage("Slow down — try again in a moment.");
       return;
     }
 
@@ -44,14 +80,28 @@ export function QuestionCard({
     setMessage(
       data.code === "EVENT_PAUSED"
         ? "The hunt is temporarily paused."
-        : data.code === "RATE_LIMITED"
-        ? "Too many attempts. Wait a moment and try again."
+        : data.code === "EVENT_ENDED"
+        ? "The hunt has ended."
+        : data.code === "QUESTION_LOCKED"
+        ? "This clue is no longer current. Reloading…"
         : "That isn't the answer. Try again."
     );
+
+    if (data.code === "QUESTION_LOCKED") {
+      setTimeout(onSolved, 600);
+    }
   }
 
+  const isCorrect = state === "correct";
+  const isWrong = state === "wrong";
+  const isRateLimited = state === "rate_limited";
+
   return (
-    <article className="overflow-hidden rounded-3xl border border-white/10 bg-panel">
+    <article
+      className={`overflow-hidden rounded-3xl border bg-panel transition ${
+        isCorrect ? "border-gold/70 animate-gold-glow" : "border-white/10"
+      }`}
+    >
       <div className="grid md:grid-cols-2">
         <div className="p-7 sm:p-9">
           <p className="text-xs font-black uppercase tracking-[.22em] text-gold">
@@ -60,37 +110,52 @@ export function QuestionCard({
           <h1 className="mt-4 text-3xl font-black">{question.title ?? "The trail continues"}</h1>
           <p className="mt-6 whitespace-pre-wrap text-lg leading-8 text-warm/90">{question.questionText}</p>
 
-          <form onSubmit={submit} className="mt-8">
-            <label htmlFor="answer" className="mb-2 block text-sm font-bold text-muted">
-              Your answer
-            </label>
-            <input
-              id="answer"
-              value={answer}
-              onChange={(e) => setAnswer(e.target.value)}
-              className={`min-h-14 w-full rounded-2xl border bg-ink px-4 outline-none transition ${
-                state === "wrong" ? "border-red-400/60" : "border-white/10 focus:border-gold/70"
-              }`}
-              placeholder="Enter your answer"
-              autoComplete="off"
-            />
-
-            {message && (
-              <p
-                className={`mt-3 text-sm font-bold ${
-                  state === "correct" ? "text-gold" : "text-red-300"
-                }`}
-              >
-                {message}
-              </p>
-            )}
-
-            <div className="mt-5">
-              <PrimaryButton type="submit" disabled={!answer.trim() || state === "loading" || state === "correct"}>
-                {state === "loading" ? "Checking…" : state === "correct" ? "Unlocked" : "Submit Answer"}
-              </PrimaryButton>
+          {isCorrect ? (
+            <div className="mt-8" role="status" aria-live="polite">
+              <p className="text-xl font-black text-gold">CLUE SOLVED</p>
+              <p className="mt-2 text-muted">The path opens…</p>
+              <div className="mt-5">
+                <PrimaryButton type="button" onClick={onSolved}>
+                  CONTINUE TO NEXT CLUE
+                </PrimaryButton>
+              </div>
             </div>
-          </form>
+          ) : (
+            <form onSubmit={submit} className="mt-8">
+              <label htmlFor="answer" className="mb-2 block text-sm font-bold text-muted">
+                Your answer
+              </label>
+              <input
+                id="answer"
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+                disabled={state === "loading"}
+                aria-invalid={isWrong}
+                className={`min-h-14 w-full rounded-2xl border bg-ink px-4 outline-none transition disabled:opacity-60 ${
+                  isWrong ? "border-red-400/60 animate-shake" : isRateLimited ? "border-gold/40" : "border-white/10 focus:border-gold/70"
+                }`}
+                placeholder="Enter your answer"
+                autoComplete="off"
+              />
+
+              {message && (
+                <p
+                  role="alert"
+                  className={`mt-3 text-sm font-bold ${
+                    isRateLimited ? "text-gold" : "text-red-300"
+                  }`}
+                >
+                  {message}
+                </p>
+              )}
+
+              <div className="mt-5">
+                <PrimaryButton type="submit" disabled={!answer.trim() || state === "loading"}>
+                  {state === "loading" ? "Checking…" : "Submit Answer"}
+                </PrimaryButton>
+              </div>
+            </form>
+          )}
         </div>
 
         <div className="game-grid flex min-h-64 items-center justify-center border-t border-white/8 bg-black/35 p-8 md:border-l md:border-t-0">

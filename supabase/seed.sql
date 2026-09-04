@@ -5,13 +5,15 @@ with inserted_event as (
     name,
     status,
     registration_open,
-    total_questions
+    total_questions,
+    hunt_start_time
   )
   values (
     'Janmashtami Treasure Hunt 2026',
-    'REGISTRATION',
-    true,
-    8
+    'DRAFT',
+    false,
+    8,
+    '2026-09-06 17:00:00+05:30'
   )
   returning id
 )

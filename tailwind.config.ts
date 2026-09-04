@@ -7,6 +7,10 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        display: ["var(--font-display)", "Space Grotesk", "sans-serif"],
+        sans: ["var(--font-body)", "Inter", "sans-serif"]
+      },
       colors: {
         ink: "#07090D",
         panel: "#11151B",

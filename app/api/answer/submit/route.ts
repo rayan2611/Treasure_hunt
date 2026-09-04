@@ -2,13 +2,18 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { readTeamSession } from "@/lib/team-session";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { isRateLimited } from "@/lib/rate-limit";
 
 const Payload = z.object({
   questionId: z.string().uuid(),
   answer: z.string().min(1).max(250)
 });
 
-const attemptWindow = new Map<string, number>();
+// Database-backed rate limiting: below this many milliseconds since the team's
+// last submission (per submissions(team_id, submitted_at desc) index), reject
+// without touching the atomic RPC. No in-memory state — safe across any number
+// of serverless instances since it reads from the shared database.
+const RATE_LIMIT_MS = 1200;
 
 export async function POST(request: Request) {
   const session = await readTeamSession();
@@ -18,14 +23,6 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ code: "INVALID_SUBMISSION" }, { status: 400 });
   }
-
-  // Starter in-memory limiter. Replace with Redis/Upstash or database-backed limiting in production.
-  const now = Date.now();
-  const previous = attemptWindow.get(session.teamId) ?? 0;
-  if (now - previous < 1200) {
-    return NextResponse.json({ code: "RATE_LIMITED" }, { status: 429 });
-  }
-  attemptWindow.set(session.teamId, now);
 
   const supabase = supabaseAdmin();
 
@@ -37,6 +34,18 @@ export async function POST(request: Request) {
 
   if (!team || team.session_version !== session.sessionVersion) {
     return NextResponse.json({ code: "UNAUTHORIZED" }, { status: 401 });
+  }
+
+  const { data: lastSubmission } = await supabase
+    .from("submissions")
+    .select("submitted_at")
+    .eq("team_id", session.teamId)
+    .order("submitted_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (isRateLimited(lastSubmission?.submitted_at ?? null, Date.now(), RATE_LIMIT_MS)) {
+    return NextResponse.json({ code: "RATE_LIMITED" }, { status: 429 });
   }
 
   const { data, error } = await supabase.rpc("submit_answer_atomic", {
@@ -59,9 +68,12 @@ export async function POST(request: Request) {
 
   if (result.code !== "OK" && result.code !== "ALREADY_COMPLETED") {
     const status =
-      result.code === "EVENT_PAUSED" || result.code === "EVENT_NOT_LIVE" ? 403 :
+      result.code === "EVENT_PAUSED" ||
+      result.code === "EVENT_NOT_STARTED" ||
+      result.code === "EVENT_ENDED" ||
       result.code === "TEAM_DISQUALIFIED" ? 403 :
       result.code === "QUESTION_LOCKED" ? 409 :
+      result.code === "TEAM_NOT_FOUND" ? 404 :
       400;
 
     return NextResponse.json({ correct: false, code: result.code }, { status });

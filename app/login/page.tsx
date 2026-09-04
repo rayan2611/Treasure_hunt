@@ -12,11 +12,15 @@ export default function LoginPage() {
   const [fullBitsId, setFullBitsId] = useState("");
   const [collision, setCollision] = useState(false);
   const [message, setMessage] = useState("");
+  const [tone, setTone] = useState<"success" | "warn" | "error">("error");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("registered")) setMessage("Registration complete. Enter your login code.");
+    if (params.get("registered")) {
+      setMessage("Registration complete. Enter your login code.");
+      setTone("success");
+    }
   }, []);
 
   async function submit(e: FormEvent) {
@@ -38,8 +42,10 @@ export default function LoginPage() {
     if (!res.ok) {
       if (data.code === "LOGIN_COLLISION") {
         setCollision(true);
+        setTone("warn");
         setMessage("That 4-digit code belongs to more than one team. Enter the full leader BITS ID.");
       } else {
+        setTone("error");
         setMessage(data.message ?? "Could not log in.");
       }
       setLoading(false);
@@ -87,7 +93,20 @@ export default function LoginPage() {
             </label>
           )}
 
-          {message && <p className="mt-4 text-sm font-bold text-warm/80">{message}</p>}
+          {message && (
+            <p
+              role="alert"
+              className={`mt-4 rounded-xl border px-4 py-3 text-sm font-bold ${
+                tone === "success"
+                  ? "border-teal/30 bg-teal/5 text-teal"
+                  : tone === "warn"
+                  ? "border-gold/30 bg-gold/5 text-gold"
+                  : "border-red-400/30 bg-red-400/5 text-red-300"
+              }`}
+            >
+              {message}
+            </p>
+          )}
 
           <div className="mt-6">
             <PrimaryButton type="submit" disabled={loading || code.length !== 4}>

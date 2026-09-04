@@ -4,18 +4,24 @@ export function PrimaryButton({
   href,
   children,
   type = "button",
-  disabled = false
+  disabled = false,
+  onClick
 }: {
   href?: string;
   children: React.ReactNode;
   type?: "button" | "submit";
   disabled?: boolean;
+  onClick?: () => void;
 }) {
   const cls =
     "inline-flex min-h-12 items-center justify-center rounded-full bg-gold px-6 py-3 font-bold text-ink shadow-glow transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50";
 
   if (href) return <Link className={cls} href={href}>{children}</Link>;
-  return <button type={type} disabled={disabled} className={cls}>{children}</button>;
+  return (
+    <button type={type} disabled={disabled} onClick={onClick} className={cls}>
+      {children}
+    </button>
+  );
 }
 
 export function SecondaryButton({ href, children }: { href: string; children: React.ReactNode }) {

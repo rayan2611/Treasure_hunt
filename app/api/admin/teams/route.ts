@@ -12,7 +12,8 @@ export async function GET(request: Request) {
     .select("id, team_name, leader_name, leader_bits_id, current_question, questions_completed, status, last_completed_at, finished_at, registered_at")
     .eq("event_id", eventId)
     .order("questions_completed", { ascending: false })
-    .order("last_completed_at", { ascending: true });
+    .order("last_completed_at", { ascending: true, nullsFirst: false })
+    .order("registered_at", { ascending: true });
 
   if (error) return NextResponse.json({ message: error.message }, { status: 500 });
   return NextResponse.json({ teams: data ?? [] });

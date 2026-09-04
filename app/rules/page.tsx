@@ -16,6 +16,9 @@ export default function RulesPage() {
       <PublicHeader />
       <main className="mx-auto min-h-screen max-w-6xl px-5 py-20">
         <SectionTitle title="RULES" description="Keep the hunt fair, safe and fun." />
+        <p className="mx-auto -mt-6 mb-10 max-w-2xl text-center font-bold text-gold">
+          Teams must have 3-5 members.
+        </p>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {rules.map(([n, label]) => (
             <article key={n} className="rounded-3xl border border-white/8 bg-panel p-6">

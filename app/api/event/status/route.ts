@@ -7,10 +7,18 @@ export async function GET() {
 
   const { data, error } = await supabaseAdmin()
     .from("events")
-    .select("id, name, status, registration_open, total_questions")
+    .select("id, name, status, registration_open, total_questions, hunt_start_time, hunt_end_time")
     .eq("id", eventId)
     .maybeSingle();
 
   if (error || !data) return NextResponse.json({ code: "EVENT_NOT_FOUND" }, { status: 404 });
-  return NextResponse.json(data);
+
+  // Aggregate-only, non-sensitive count — no team identities or private fields exposed.
+  const { count } = await supabaseAdmin()
+    .from("teams")
+    .select("id", { count: "exact", head: true })
+    .eq("event_id", eventId)
+    .neq("status", "DISQUALIFIED");
+
+  return NextResponse.json({ ...data, team_count: count ?? 0 });
 }

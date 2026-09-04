@@ -1,30 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { PublicHeader } from "@/components/public-header";
 import { SectionTitle } from "@/components/ui";
 import type { PublicLeaderboardEntry } from "@/lib/types";
+import { usePolling } from "@/lib/use-polling";
 
 export default function LeaderboardPage() {
   const [entries, setEntries] = useState<PublicLeaderboardEntry[]>([]);
+  const [loaded, setLoaded] = useState(false);
 
-  useEffect(() => {
-    let active = true;
-
-    async function load() {
-      const res = await fetch("/api/leaderboard", { cache: "no-store" });
-      const data = await res.json().catch(() => ({}));
-      if (active && res.ok) setEntries(data.entries ?? []);
-    }
-
-    load();
-    const timer = setInterval(load, 5000);
-
-    return () => {
-      active = false;
-      clearInterval(timer);
-    };
+  const load = useCallback(async () => {
+    const res = await fetch("/api/leaderboard", { cache: "no-store" });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) setEntries(data.entries ?? []);
+    setLoaded(true);
   }, []);
+
+  // Full leaderboard polling: every 5-8s while visible, paused when backgrounded (spec 20A).
+  usePolling(load, 6000);
 
   return (
     <>
@@ -33,9 +27,10 @@ export default function LeaderboardPage() {
         <SectionTitle eyebrow="● Live" title="LIVE LEADERBOARD" description="Every clue counts. Every second matters." />
 
         <div className="space-y-3">
-          {entries.length === 0 && (
-            <div className="rounded-3xl border border-white/8 bg-panel p-8 text-center text-muted">
-              No teams are ranked yet.
+          {loaded && entries.length === 0 && (
+            <div className="rounded-3xl border border-white/8 bg-panel p-10 text-center">
+              <p className="text-2xl font-black">THE TRAIL IS EMPTY.</p>
+              <p className="mt-2 text-muted">No team has cracked a clue yet — check back once the hunt begins.</p>
             </div>
           )}
 

@@ -19,6 +19,17 @@ export type PublicLeaderboardEntry = {
   finished: boolean;
 };
 
+export type EventStatusPayload = {
+  id: string;
+  name: string;
+  status: EventStatus;
+  registration_open: boolean;
+  total_questions: number;
+  hunt_start_time: string | null;
+  hunt_end_time: string | null;
+  team_count: number;
+};
+
 export type CurrentQuestion = {
   questionId: string;
   questionNumber: number;

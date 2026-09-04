@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { extractLastFourDigits } from "@/lib/normalize";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { isValidBitsId, MIN_ADDITIONAL_MEMBERS, MAX_ADDITIONAL_MEMBERS } from "@/lib/validation";
 
 const Member = z.object({
   name: z.string().trim().min(1).max(80),
@@ -13,14 +14,22 @@ const Payload = z.object({
   leaderName: z.string().trim().min(2).max(80),
   leaderBITSID: z.string().trim().min(4).max(40),
   contactNumber: z.string().trim().min(6).max(20),
-  members: z.array(Member).max(8).default([])
+  // Leader + 2-4 additional members = team size 3-5, enforced server-side.
+  members: z.array(Member).min(MIN_ADDITIONAL_MEMBERS).max(MAX_ADDITIONAL_MEMBERS)
 });
 
 export async function POST(request: Request) {
   const parsed = Payload.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json(
-      { code: "INVALID_REGISTRATION", message: "Check the registration fields." },
+      { code: "INVALID_REGISTRATION", message: "Check the registration fields. Teams need 3-5 members." },
+      { status: 400 }
+    );
+  }
+
+  if (!isValidBitsId(parsed.data.leaderBITSID)) {
+    return NextResponse.json(
+      { code: "INVALID_BITS_ID", message: "Leader BITS ID must look like 2023A7PS1234P." },
       { status: 400 }
     );
   }

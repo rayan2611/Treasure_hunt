@@ -5,16 +5,24 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PublicHeader } from "@/components/public-header";
 import { PrimaryButton } from "@/components/ui";
+import { isValidBitsId, isValidTeamSize, BITS_ID_EXAMPLE as BITS_ID_SAMPLE } from "@/lib/validation";
 
 type Member = { name: string; bitsId: string };
 
+const BITS_ID_EXAMPLE = `e.g. ${BITS_ID_SAMPLE}`;
+
 export default function RegisterPage() {
   const router = useRouter();
+  const [teamName, setTeamName] = useState("");
+  const [leaderName, setLeaderName] = useState("");
+  const [leaderBitsId, setLeaderBitsId] = useState("");
+  const [contactNumber, setContactNumber] = useState("");
+  // Leader + 2 required members to start; up to 2 more optional (team size 3-5 total).
   const [members, setMembers] = useState<Member[]>([
-    { name: "", bitsId: "" },
     { name: "", bitsId: "" },
     { name: "", bitsId: "" }
   ]);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -22,18 +30,51 @@ export default function RegisterPage() {
     setMembers((prev) => prev.map((m, i) => (i === index ? { ...m, [key]: value } : m)));
   }
 
+  function addMember() {
+    setMembers((prev) => (prev.length < 4 ? [...prev, { name: "", bitsId: "" }] : prev));
+  }
+
+  function removeMember(index: number) {
+    setMembers((prev) => (prev.length > 2 ? prev.filter((_, i) => i !== index) : prev));
+  }
+
+  function validate() {
+    const errs: Record<string, string> = {};
+    if (teamName.trim().length < 2) errs.teamName = "Enter a team name.";
+    if (leaderName.trim().length < 2) errs.leaderName = "Enter the leader's name.";
+    if (!isValidBitsId(leaderBitsId)) {
+      errs.leaderBITSID = `Format should look like ${BITS_ID_EXAMPLE}.`;
+    }
+    if (contactNumber.trim().length < 6) errs.contactNumber = "Enter a valid contact number.";
+
+    const filledMembers = members.filter((m) => m.name.trim() || m.bitsId.trim());
+    if (!isValidTeamSize(filledMembers.length)) {
+      errs.members = "Teams need 3-5 members total (leader + 2-4 more).";
+    }
+    members.forEach((m, i) => {
+      if (m.name.trim() && !m.bitsId.trim()) errs[`member-${i}`] = "Add this member's BITS ID.";
+    });
+
+    setFieldErrors(errs);
+    return Object.keys(errs).length === 0;
+  }
+
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setLoading(true);
     setError("");
 
-    const form = new FormData(e.currentTarget);
+    if (!validate()) return;
+
+    setLoading(true);
+
     const body = {
-      teamName: String(form.get("teamName") ?? ""),
-      leaderName: String(form.get("leaderName") ?? ""),
-      leaderBITSID: String(form.get("leaderBITSID") ?? ""),
-      contactNumber: String(form.get("contactNumber") ?? ""),
-      members: members.filter((m) => m.name.trim() || m.bitsId.trim())
+      teamName,
+      leaderName,
+      leaderBITSID: leaderBitsId,
+      contactNumber,
+      members: members
+        .filter((m) => m.name.trim() && m.bitsId.trim())
+        .map((m) => ({ name: m.name.trim(), bitsId: m.bitsId.trim() }))
     };
 
     const res = await fetch("/api/teams/register", {
@@ -45,7 +86,15 @@ export default function RegisterPage() {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      setError(data.message ?? "Registration failed.");
+      if (data.code === "DUPLICATE_REGISTRATION") {
+        setError("This leader's BITS ID is already registered. Resume with your existing team instead.");
+      } else if (data.code === "INVALID_BITS_ID") {
+        setError(data.message ?? `Leader BITS ID format looks wrong. ${BITS_ID_EXAMPLE}.`);
+      } else if (data.code === "REGISTRATION_CLOSED") {
+        setError("Registration is currently closed.");
+      } else {
+        setError(data.message ?? "Registration failed. Please try again.");
+      }
       setLoading(false);
       return;
     }
@@ -72,30 +121,74 @@ export default function RegisterPage() {
             <div className="mx-auto w-full max-w-xl">
               <p className="text-sm font-black uppercase tracking-[.22em] text-gold">Registration</p>
               <h2 className="mt-3 text-4xl font-black">ASSEMBLE YOUR CREW</h2>
-              <p className="mt-3 text-muted">Register once before entering the hunt.</p>
+              <p className="mt-3 text-muted">Register your team of 3-5 before entering the hunt.</p>
 
-              <form className="mt-8 space-y-4" onSubmit={submit}>
-                {[
-                  ["teamName", "Team Name"],
-                  ["leaderName", "Leader Name"],
-                  ["leaderBITSID", "Leader BITS ID"],
-                  ["contactNumber", "Contact Number"]
-                ].map(([name, label]) => (
-                  <label key={name} className="block">
-                    <span className="mb-2 block text-sm font-bold text-muted">{label}</span>
-                    <input
-                      name={name}
-                      required
-                      className="min-h-14 w-full rounded-2xl border border-white/10 bg-panel px-4 outline-none focus:border-gold/60"
-                    />
-                  </label>
-                ))}
+              <form className="mt-8 space-y-4" onSubmit={submit} noValidate>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-bold text-muted">Team Name</span>
+                  <input
+                    value={teamName}
+                    onChange={(e) => setTeamName(e.target.value)}
+                    required
+                    aria-invalid={!!fieldErrors.teamName}
+                    className="min-h-14 w-full rounded-2xl border border-white/10 bg-panel px-4 outline-none focus:border-gold/60"
+                  />
+                  {fieldErrors.teamName && <p className="mt-1 text-xs font-bold text-red-300">{fieldErrors.teamName}</p>}
+                </label>
+
+                <label className="block">
+                  <span className="mb-2 block text-sm font-bold text-muted">Leader Name</span>
+                  <input
+                    value={leaderName}
+                    onChange={(e) => setLeaderName(e.target.value)}
+                    required
+                    aria-invalid={!!fieldErrors.leaderName}
+                    className="min-h-14 w-full rounded-2xl border border-white/10 bg-panel px-4 outline-none focus:border-gold/60"
+                  />
+                  {fieldErrors.leaderName && <p className="mt-1 text-xs font-bold text-red-300">{fieldErrors.leaderName}</p>}
+                </label>
+
+                <label className="block">
+                  <span className="mb-2 block text-sm font-bold text-muted">Leader BITS ID</span>
+                  <input
+                    value={leaderBitsId}
+                    onChange={(e) => setLeaderBitsId(e.target.value.toUpperCase())}
+                    required
+                    autoCapitalize="characters"
+                    aria-invalid={!!fieldErrors.leaderBITSID}
+                    placeholder={BITS_ID_EXAMPLE}
+                    className="min-h-14 w-full rounded-2xl border border-white/10 bg-panel px-4 outline-none focus:border-gold/60"
+                  />
+                  <p className="mt-1 text-xs text-muted">Format: {BITS_ID_EXAMPLE}</p>
+                  {fieldErrors.leaderBITSID && <p className="mt-1 text-xs font-bold text-red-300">{fieldErrors.leaderBITSID}</p>}
+                </label>
+
+                <label className="block">
+                  <span className="mb-2 block text-sm font-bold text-muted">Contact Number</span>
+                  <input
+                    value={contactNumber}
+                    onChange={(e) => setContactNumber(e.target.value)}
+                    required
+                    type="tel"
+                    inputMode="tel"
+                    aria-invalid={!!fieldErrors.contactNumber}
+                    className="min-h-14 w-full rounded-2xl border border-white/10 bg-panel px-4 outline-none focus:border-gold/60"
+                  />
+                  {fieldErrors.contactNumber && <p className="mt-1 text-xs font-bold text-red-300">{fieldErrors.contactNumber}</p>}
+                </label>
 
                 <div className="pt-2">
-                  <div className="mb-3 text-sm font-black uppercase tracking-[.16em] text-gold">Additional Members</div>
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="text-sm font-black uppercase tracking-[.16em] text-gold">Additional Members</span>
+                    {members.length < 4 && (
+                      <button type="button" onClick={addMember} className="min-h-10 rounded-full border border-white/10 px-3 text-xs font-bold text-warm">
+                        + Add member
+                      </button>
+                    )}
+                  </div>
                   <div className="space-y-4">
                     {members.map((member, index) => (
-                      <div key={index} className="grid gap-3 sm:grid-cols-2">
+                      <div key={index} className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
                         <input
                           value={member.name}
                           onChange={(e) => updateMember(index, "name", e.target.value)}
@@ -104,16 +197,31 @@ export default function RegisterPage() {
                         />
                         <input
                           value={member.bitsId}
-                          onChange={(e) => updateMember(index, "bitsId", e.target.value)}
+                          onChange={(e) => updateMember(index, "bitsId", e.target.value.toUpperCase())}
                           placeholder={`Member ${index + 2} BITS ID`}
                           className="min-h-14 rounded-2xl border border-white/10 bg-panel px-4 outline-none focus:border-gold/60"
                         />
+                        {members.length > 2 && (
+                          <button
+                            type="button"
+                            onClick={() => removeMember(index)}
+                            aria-label={`Remove member ${index + 2}`}
+                            className="min-h-12 rounded-full border border-white/10 px-3 text-xs font-bold text-muted sm:min-h-14"
+                          >
+                            Remove
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
+                  {fieldErrors.members && <p className="mt-2 text-xs font-bold text-red-300">{fieldErrors.members}</p>}
                 </div>
 
-                {error && <p className="text-sm font-bold text-red-300">{error}</p>}
+                {error && (
+                  <p role="alert" className="rounded-xl border border-red-400/30 bg-red-400/5 px-4 py-3 text-sm font-bold text-red-300">
+                    {error}
+                  </p>
+                )}
 
                 <PrimaryButton type="submit" disabled={loading}>
                   {loading ? "Registering…" : "Register Team"}

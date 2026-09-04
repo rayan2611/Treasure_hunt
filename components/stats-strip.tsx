@@ -1,7 +1,23 @@
+"use client";
+
+import { useCallback, useState } from "react";
+import type { EventStatusPayload } from "@/lib/types";
+import { usePolling } from "@/lib/use-polling";
+
 export function StatsStrip() {
-  const stats = [
-    ["08", "CLUES"],
-    ["XX", "TEAMS"],
+  const [event, setEvent] = useState<EventStatusPayload | null>(null);
+
+  const load = useCallback(async () => {
+    const res = await fetch("/api/event/status", { cache: "no-store" });
+    if (!res.ok) return;
+    setEvent(await res.json());
+  }, []);
+
+  usePolling(load, 12000);
+
+  const stats: [string, string][] = [
+    [String(event?.total_questions ?? 8).padStart(2, "0"), "CLUES"],
+    [event ? String(event.team_count) : "—", "TEAMS"],
     ["● LIVE", "LEADERBOARD"],
     ["01", "TREASURE"]
   ];

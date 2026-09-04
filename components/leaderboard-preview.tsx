@@ -1,29 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import type { PublicLeaderboardEntry } from "@/lib/types";
 import { SectionTitle, SecondaryButton } from "@/components/ui";
+import { usePolling } from "@/lib/use-polling";
 
 export function LeaderboardPreview() {
   const [rows, setRows] = useState<PublicLeaderboardEntry[]>([]);
 
-  useEffect(() => {
-    let active = true;
-
-    async function load() {
-      const res = await fetch("/api/leaderboard", { cache: "no-store" });
-      if (!res.ok) return;
-      const data = await res.json();
-      if (active) setRows(data.entries ?? []);
-    }
-
-    load();
-    const timer = setInterval(load, 5000);
-    return () => {
-      active = false;
-      clearInterval(timer);
-    };
+  const load = useCallback(async () => {
+    const res = await fetch("/api/leaderboard", { cache: "no-store" });
+    if (!res.ok) return;
+    const data = await res.json();
+    setRows(data.entries ?? []);
   }, []);
+
+  // Leaderboard polling: every 5-8s while visible, paused when backgrounded (spec 20A).
+  usePolling(load, 6000);
 
   const top = rows.slice(0, 3);
 

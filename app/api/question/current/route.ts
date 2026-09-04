@@ -29,7 +29,11 @@ export async function GET() {
     .maybeSingle();
 
   if (event?.status !== "LIVE") {
-    return NextResponse.json({ code: `EVENT_${event?.status ?? "UNAVAILABLE"}` }, { status: 403 });
+    const code =
+      event?.status === "PAUSED" ? "EVENT_PAUSED" :
+      event?.status === "ENDED" ? "EVENT_ENDED" :
+      "EVENT_NOT_STARTED";
+    return NextResponse.json({ code }, { status: 403 });
   }
 
   const { data: question } = await supabase
