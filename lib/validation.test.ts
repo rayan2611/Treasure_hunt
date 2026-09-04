@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isValidBitsId, isValidTeamSize } from "./validation";
+import { isValidBitsId, isValidTeamSize, isValidPin } from "./validation";
 
 describe("isValidBitsId", () => {
   it("accepts the canonical format", () => {
@@ -30,5 +30,19 @@ describe("isValidTeamSize", () => {
     expect(isValidTeamSize(0)).toBe(false);
     expect(isValidTeamSize(1)).toBe(false);
     expect(isValidTeamSize(5)).toBe(false);
+  });
+});
+
+describe("isValidPin", () => {
+  it("accepts exactly four digits", () => {
+    expect(isValidPin("1234")).toBe(true);
+    expect(isValidPin("0000")).toBe(true);
+  });
+
+  it("rejects anything that isn't exactly four digits", () => {
+    expect(isValidPin("123")).toBe(false);
+    expect(isValidPin("12345")).toBe(false);
+    expect(isValidPin("12a4")).toBe(false);
+    expect(isValidPin("")).toBe(false);
   });
 });

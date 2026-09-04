@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PublicHeader } from "@/components/public-header";
 import { PrimaryButton } from "@/components/ui";
-import { isValidBitsId, isValidTeamSize, BITS_ID_EXAMPLE as BITS_ID_SAMPLE } from "@/lib/validation";
+import { isValidBitsId, isValidTeamSize, isValidPin, BITS_ID_EXAMPLE as BITS_ID_SAMPLE } from "@/lib/validation";
 
 type Member = { name: string; bitsId: string };
 
@@ -17,6 +17,8 @@ export default function RegisterPage() {
   const [leaderName, setLeaderName] = useState("");
   const [leaderBitsId, setLeaderBitsId] = useState("");
   const [contactNumber, setContactNumber] = useState("");
+  const [pin, setPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
   // Leader + 2 required members to start; up to 2 more optional (team size 3-5 total).
   const [members, setMembers] = useState<Member[]>([
     { name: "", bitsId: "" },
@@ -46,6 +48,8 @@ export default function RegisterPage() {
       errs.leaderBITSID = `Format should look like ${BITS_ID_EXAMPLE}.`;
     }
     if (contactNumber.trim().length < 6) errs.contactNumber = "Enter a valid contact number.";
+    if (!isValidPin(pin)) errs.pin = "PIN must be exactly 4 digits.";
+    else if (pin !== confirmPin) errs.confirmPin = "PINs don't match.";
 
     const filledMembers = members.filter((m) => m.name.trim() || m.bitsId.trim());
     if (!isValidTeamSize(filledMembers.length)) {
@@ -72,6 +76,7 @@ export default function RegisterPage() {
       leaderName,
       leaderBITSID: leaderBitsId,
       contactNumber,
+      pin,
       members: members
         .filter((m) => m.name.trim() && m.bitsId.trim())
         .map((m) => ({ name: m.name.trim(), bitsId: m.bitsId.trim() }))
@@ -90,6 +95,8 @@ export default function RegisterPage() {
         setError("This leader's BITS ID is already registered. Resume with your existing team instead.");
       } else if (data.code === "INVALID_BITS_ID") {
         setError(data.message ?? `Leader BITS ID format looks wrong. ${BITS_ID_EXAMPLE}.`);
+      } else if (data.code === "INVALID_PIN") {
+        setError("PIN must be exactly 4 digits.");
       } else if (data.code === "REGISTRATION_CLOSED") {
         setError("Registration is currently closed.");
       } else {
@@ -176,6 +183,41 @@ export default function RegisterPage() {
                   />
                   {fieldErrors.contactNumber && <p className="mt-1 text-xs font-bold text-red-300">{fieldErrors.contactNumber}</p>}
                 </label>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-bold text-muted">Create a 4-digit PIN</span>
+                    <input
+                      value={pin}
+                      onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                      required
+                      inputMode="numeric"
+                      maxLength={4}
+                      aria-invalid={!!fieldErrors.pin}
+                      className="min-h-14 w-full rounded-2xl border border-white/10 bg-panel px-4 text-center text-2xl font-black tracking-[.3em] outline-none focus:border-gold/60"
+                      placeholder="0000"
+                    />
+                    {fieldErrors.pin && <p className="mt-1 text-xs font-bold text-red-300">{fieldErrors.pin}</p>}
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-bold text-muted">Confirm PIN</span>
+                    <input
+                      value={confirmPin}
+                      onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                      required
+                      inputMode="numeric"
+                      maxLength={4}
+                      aria-invalid={!!fieldErrors.confirmPin}
+                      className="min-h-14 w-full rounded-2xl border border-white/10 bg-panel px-4 text-center text-2xl font-black tracking-[.3em] outline-none focus:border-gold/60"
+                      placeholder="0000"
+                    />
+                    {fieldErrors.confirmPin && <p className="mt-1 text-xs font-bold text-red-300">{fieldErrors.confirmPin}</p>}
+                  </label>
+                </div>
+                <p className="-mt-2 text-xs text-muted">
+                  You'll use this PIN with your team name, mobile number, or BITS ID to resume the hunt later.
+                </p>
 
                 <div className="pt-2">
                   <div className="mb-3 flex items-center justify-between">

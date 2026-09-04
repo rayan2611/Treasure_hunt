@@ -8,9 +8,8 @@ import { PrimaryButton } from "@/components/ui";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [code, setCode] = useState("");
-  const [fullBitsId, setFullBitsId] = useState("");
-  const [collision, setCollision] = useState(false);
+  const [identifier, setIdentifier] = useState("");
+  const [pin, setPin] = useState("");
   const [message, setMessage] = useState("");
   const [tone, setTone] = useState<"success" | "warn" | "error">("error");
   const [loading, setLoading] = useState(false);
@@ -18,7 +17,7 @@ export default function LoginPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("registered")) {
-      setMessage("Registration complete. Enter your login code.");
+      setMessage("Registration complete. Enter your details to resume.");
       setTone("success");
     }
   }, []);
@@ -31,19 +30,15 @@ export default function LoginPage() {
     const res = await fetch("/api/auth/team-login", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        code,
-        fullBitsId: collision ? fullBitsId : undefined
-      })
+      body: JSON.stringify({ identifier, pin })
     });
 
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
       if (data.code === "LOGIN_COLLISION") {
-        setCollision(true);
         setTone("warn");
-        setMessage("That 4-digit code belongs to more than one team. Enter the full leader BITS ID.");
+        setMessage("That matched more than one team — enter your full BITS ID instead.");
       } else {
         setTone("error");
         setMessage(data.message ?? "Could not log in.");
@@ -64,34 +59,33 @@ export default function LoginPage() {
           <p className="text-sm font-black uppercase tracking-[.22em] text-gold">Resume</p>
           <h1 className="mt-3 text-4xl font-black">WELCOME BACK, HUNTER.</h1>
           <p className="mt-3 text-muted">
-            Enter the last 4 digits associated with the team leader's BITS ID.
+            Enter your team name, mobile number or BITS ID, plus your 4-digit PIN.
           </p>
 
           <label className="mt-7 block">
-            <span className="mb-2 block text-sm font-bold text-muted">4-digit login code</span>
+            <span className="mb-2 block text-sm font-bold text-muted">Team name / mobile / BITS ID</span>
+            <input
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              required
+              className="min-h-14 w-full rounded-2xl border border-white/10 bg-ink px-4 outline-none focus:border-gold/70"
+              placeholder="e.g. Nighthawks"
+            />
+          </label>
+
+          <label className="mt-4 block">
+            <span className="mb-2 block text-sm font-bold text-muted">4-digit PIN</span>
             <input
               inputMode="numeric"
               maxLength={4}
               pattern="\d{4}"
               required
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
               className="min-h-16 w-full rounded-2xl border border-white/10 bg-ink px-4 text-center text-3xl font-black tracking-[.35em] outline-none focus:border-gold/70"
               placeholder="0000"
             />
           </label>
-
-          {collision && (
-            <label className="mt-4 block">
-              <span className="mb-2 block text-sm font-bold text-muted">Full leader BITS ID</span>
-              <input
-                value={fullBitsId}
-                onChange={(e) => setFullBitsId(e.target.value)}
-                required
-                className="min-h-14 w-full rounded-2xl border border-white/10 bg-ink px-4 outline-none focus:border-gold/70"
-              />
-            </label>
-          )}
 
           {message && (
             <p
@@ -109,7 +103,7 @@ export default function LoginPage() {
           )}
 
           <div className="mt-6">
-            <PrimaryButton type="submit" disabled={loading || code.length !== 4}>
+            <PrimaryButton type="submit" disabled={loading || !identifier.trim() || pin.length !== 4}>
               {loading ? "Entering…" : "Resume Hunt"}
             </PrimaryButton>
           </div>

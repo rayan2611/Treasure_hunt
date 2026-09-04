@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { extractLastFourDigits } from "@/lib/normalize";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { isValidBitsId, MIN_ADDITIONAL_MEMBERS, MAX_ADDITIONAL_MEMBERS } from "@/lib/validation";
+import { isValidBitsId, isValidPin, MIN_ADDITIONAL_MEMBERS, MAX_ADDITIONAL_MEMBERS } from "@/lib/validation";
 
 const Member = z.object({
   name: z.string().trim().min(1).max(80),
@@ -15,6 +14,7 @@ const Payload = z.object({
   leaderBITSID: z.string().trim().min(4).max(40),
   contactNumber: z.string().trim().min(6).max(20),
   // Leader + 2-4 additional members = team size 3-5, enforced server-side.
+  pin: z.string().trim().length(4),
   members: z.array(Member).min(MIN_ADDITIONAL_MEMBERS).max(MAX_ADDITIONAL_MEMBERS)
 });
 
@@ -30,6 +30,13 @@ export async function POST(request: Request) {
   if (!isValidBitsId(parsed.data.leaderBITSID)) {
     return NextResponse.json(
       { code: "INVALID_BITS_ID", message: "Leader BITS ID must look like 2023A7PS1234P." },
+      { status: 400 }
+    );
+  }
+
+  if (!isValidPin(parsed.data.pin)) {
+    return NextResponse.json(
+      { code: "INVALID_PIN", message: "PIN must be exactly 4 digits." },
       { status: 400 }
     );
   }
@@ -67,22 +74,12 @@ export async function POST(request: Request) {
     );
   }
 
-  let loginCode: string;
-  try {
-    loginCode = extractLastFourDigits(leaderBITSID);
-  } catch {
-    return NextResponse.json(
-      { code: "INVALID_BITS_ID", message: "BITS ID must contain at least four digits." },
-      { status: 400 }
-    );
-  }
-
   const { error } = await supabase.from("teams").insert({
     event_id: eventId,
     team_name: parsed.data.teamName,
     leader_name: parsed.data.leaderName,
     leader_bits_id: leaderBITSID,
-    login_code: loginCode,
+    login_code: parsed.data.pin.trim(),
     members: parsed.data.members.map((m) => ({
       name: m.name,
       bitsId: m.bitsId.toUpperCase()

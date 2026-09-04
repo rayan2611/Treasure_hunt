@@ -8,7 +8,7 @@ Leaderboard is public at `/leaderboard`.
 
 ## Team session
 
-A successful last-4 login creates an HTTP-only JWT cookie containing:
+A successful login (team name / mobile / BITS ID + the team's chosen 4-digit PIN) creates an HTTP-only JWT cookie containing:
 - teamId
 - sessionVersion
 - role=TEAM

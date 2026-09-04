@@ -16,3 +16,11 @@ export const MAX_ADDITIONAL_MEMBERS = 4;
 export function isValidTeamSize(additionalMemberCount: number): boolean {
   return additionalMemberCount >= MIN_ADDITIONAL_MEMBERS && additionalMemberCount <= MAX_ADDITIONAL_MEMBERS;
 }
+
+// Teams choose their own 4-digit PIN at registration (not derived from the
+// BITS ID) and log back in with team name / mobile number / BITS ID + PIN.
+export const PIN_REGEX = /^\d{4}$/;
+
+export function isValidPin(value: string): boolean {
+  return PIN_REGEX.test(value.trim());
+}

@@ -2,17 +2,20 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createTeamSession } from "@/lib/team-session";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { isValidPin } from "@/lib/validation";
 
+// Teams log back in with team name / mobile number / BITS ID (any one) plus
+// the 4-digit PIN they chose at registration.
 const Payload = z.object({
-  code: z.string().regex(/^\d{4}$/),
-  fullBitsId: z.string().trim().min(4).max(40).optional()
+  identifier: z.string().trim().min(1).max(80),
+  pin: z.string().trim().length(4)
 });
 
 export async function POST(request: Request) {
   const parsed = Payload.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) {
+  if (!parsed.success || !isValidPin(parsed.data.pin)) {
     return NextResponse.json(
-      { code: "INVALID_LOGIN", message: "Enter a valid four-digit code." },
+      { code: "INVALID_LOGIN", message: "Enter your team name, mobile number or BITS ID, plus your 4-digit PIN." },
       { status: 400 }
     );
   }
@@ -22,13 +25,16 @@ export async function POST(request: Request) {
 
   const supabase = supabaseAdmin();
 
-  let query = supabase
-    .from("teams")
-    .select("id, leader_bits_id, login_code, session_version, status")
-    .eq("event_id", eventId)
-    .eq("login_code", parsed.data.code);
+  // Escape commas so a stray "," in the identifier can't break the .or() filter syntax.
+  const identifier = parsed.data.identifier.replace(/,/g, "");
+  const bitsIdCandidate = identifier.toUpperCase();
 
-  const { data: matches, error } = await query;
+  const { data: matches, error } = await supabase
+    .from("teams")
+    .select("id, session_version, status")
+    .eq("event_id", eventId)
+    .eq("login_code", parsed.data.pin)
+    .or(`team_name.ilike.${identifier},contact_number.eq.${identifier},leader_bits_id.eq.${bitsIdCandidate}`);
 
   if (error) return NextResponse.json({ code: "SERVER_ERROR" }, { status: 500 });
 
@@ -36,33 +42,19 @@ export async function POST(request: Request) {
 
   if (active.length === 0) {
     return NextResponse.json(
-      { code: "INVALID_LOGIN", message: "No registered team matches that code." },
+      { code: "INVALID_LOGIN", message: "No registered team matches those details." },
       { status: 401 }
     );
   }
 
-  let team = active[0];
-
   if (active.length > 1) {
-    if (!parsed.data.fullBitsId) {
-      return NextResponse.json(
-        { code: "LOGIN_COLLISION", message: "Full BITS ID required." },
-        { status: 409 }
-      );
-    }
-
-    const target = parsed.data.fullBitsId.toUpperCase();
-    const exact = active.filter((t) => t.leader_bits_id === target);
-
-    if (exact.length !== 1) {
-      return NextResponse.json(
-        { code: "INVALID_LOGIN", message: "The details do not match a registered team." },
-        { status: 401 }
-      );
-    }
-
-    team = exact[0];
+    return NextResponse.json(
+      { code: "LOGIN_COLLISION", message: "That matched more than one team — enter your full BITS ID instead." },
+      { status: 409 }
+    );
   }
+
+  const team = active[0];
 
   await createTeamSession({
     teamId: team.id,

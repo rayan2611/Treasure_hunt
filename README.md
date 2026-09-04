@@ -55,7 +55,7 @@ Before event day:
 - tighten BITS ID validation to your campus format
 - review Supabase RLS policies
 - add CAPTCHA only if public registration abuse becomes a concern
-- test last-4 collision flow
+- test identifier+PIN collision flow (e.g. duplicate team names sharing a PIN)
 - load-test concurrent submissions
 - add image/media upload workflow
 - add real admin question editor UI

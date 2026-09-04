@@ -61,6 +61,8 @@ describe("Register form validation", () => {
     fireEvent.change(screen.getByLabelText(/leader name/i), { target: { value: "Arya" } });
     fireEvent.change(screen.getByLabelText(/leader bits id/i), { target: { value: "2023A7PS1234P" } });
     fireEvent.change(screen.getByLabelText(/contact number/i), { target: { value: "9876543210" } });
+    fireEvent.change(screen.getByLabelText(/create a 4-digit pin/i), { target: { value: "4321" } });
+    fireEvent.change(screen.getByLabelText(/confirm pin/i), { target: { value: "4321" } });
     fireEvent.change(screen.getByPlaceholderText(/member 2 name/i), { target: { value: "Bee" } });
     fireEvent.change(screen.getByPlaceholderText(/member 2 bits id/i), { target: { value: "2023A7PS0002P" } });
     fireEvent.change(screen.getByPlaceholderText(/member 3 name/i), { target: { value: "Cee" } });
@@ -72,5 +74,28 @@ describe("Register form validation", () => {
       "/api/teams/register",
       expect.objectContaining({ method: "POST" })
     );
+  });
+
+  it("requires the confirm-PIN field to match", () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+
+    render(<RegisterPage />);
+
+    fireEvent.change(screen.getByLabelText(/team name/i), { target: { value: "Nighthawks" } });
+    fireEvent.change(screen.getByLabelText(/leader name/i), { target: { value: "Arya" } });
+    fireEvent.change(screen.getByLabelText(/leader bits id/i), { target: { value: "2023A7PS1234P" } });
+    fireEvent.change(screen.getByLabelText(/contact number/i), { target: { value: "9876543210" } });
+    fireEvent.change(screen.getByLabelText(/create a 4-digit pin/i), { target: { value: "1111" } });
+    fireEvent.change(screen.getByLabelText(/confirm pin/i), { target: { value: "2222" } });
+    fireEvent.change(screen.getByPlaceholderText(/member 2 name/i), { target: { value: "Bee" } });
+    fireEvent.change(screen.getByPlaceholderText(/member 2 bits id/i), { target: { value: "2023A7PS0002P" } });
+    fireEvent.change(screen.getByPlaceholderText(/member 3 name/i), { target: { value: "Cee" } });
+    fireEvent.change(screen.getByPlaceholderText(/member 3 bits id/i), { target: { value: "2023A7PS0003P" } });
+
+    fireEvent.click(screen.getByRole("button", { name: /register team/i }));
+
+    expect(screen.getByText(/pins don't match/i)).toBeInTheDocument();
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
