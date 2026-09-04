@@ -84,7 +84,9 @@ export function QuestionCard({
         ? "The hunt has ended."
         : data.code === "QUESTION_LOCKED"
         ? "This clue is no longer current. Reloading…"
-        : "That isn't the answer. Try again."
+        : data.code === "WRONG_ANSWER"
+        ? "That isn't the answer. Try again."
+        : "Something went wrong submitting that. Try again."
     );
 
     if (data.code === "QUESTION_LOCKED") {

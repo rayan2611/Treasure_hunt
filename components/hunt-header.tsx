@@ -32,9 +32,17 @@ export function HuntHeader({
           <div className="text-xs text-muted">CLUE {currentQuestion} / {totalQuestions}</div>
         </div>
 
-        <button onClick={logout} className="text-xs font-bold text-muted hover:text-warm">
-          Logout
-        </button>
+        <nav className="flex items-center gap-4 text-xs font-bold text-muted">
+          <Link href="/leaderboard" className="hover:text-warm">
+            Leaderboard
+          </Link>
+          <Link href="/rules" className="hover:text-warm">
+            Rules
+          </Link>
+          <button onClick={logout} className="hover:text-warm">
+            Logout
+          </button>
+        </nav>
       </div>
     </header>
   );

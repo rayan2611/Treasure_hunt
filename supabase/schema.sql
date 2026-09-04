@@ -255,7 +255,7 @@ begin
     last_completed_at = now(),
     updated_at = now()
   where t.id = v_team.id
-  returning teams.current_question, teams.questions_completed
+  returning t.current_question, t.questions_completed
     into current_question, questions_completed;
 
   return query select 'OK', current_question, questions_completed, false;

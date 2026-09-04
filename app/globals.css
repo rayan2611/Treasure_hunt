@@ -16,7 +16,11 @@ html {
 
 body {
   margin: 0;
-  background: #07090D;
+  background:
+    radial-gradient(circle at 15% 0%, rgba(83,109,254,.10), transparent 40%),
+    radial-gradient(circle at 85% 100%, rgba(83,109,254,.07), transparent 45%),
+    #080B14;
+  background-attachment: fixed;
   color: #F7F5EF;
   font-family: var(--font-body), Inter, Arial, Helvetica, sans-serif;
 }
@@ -44,9 +48,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .glass {
-  background: rgba(17, 21, 27, .76);
+  background: rgba(17, 21, 31, .76);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(255,255,255,.08);
+  border: 1px solid rgba(83,109,254,.14);
 }
 
 .gold-line {

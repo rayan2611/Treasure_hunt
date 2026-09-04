@@ -12,8 +12,8 @@ export default {
         sans: ["var(--font-body)", "Inter", "sans-serif"]
       },
       colors: {
-        ink: "#07090D",
-        panel: "#11151B",
+        ink: "#080B14",
+        panel: "#11151F",
         gold: "#FFC43D",
         peacock: "#536DFE",
         teal: "#1FB7A6",
