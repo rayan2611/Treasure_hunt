@@ -102,7 +102,9 @@ export default function HuntPage() {
     );
   }
 
-  const effectiveStatus = eventStatus?.status ?? team.eventStatus;
+  // team.eventStatus already accounts for a test_access bypass (always LIVE
+  // for that team) — never let the global status poll override that.
+  const effectiveStatus = team.eventStatus === "LIVE" ? "LIVE" : eventStatus?.status ?? team.eventStatus;
 
   return (
     <>

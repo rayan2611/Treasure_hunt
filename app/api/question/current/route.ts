@@ -11,7 +11,7 @@ export async function GET() {
 
   const { data: team } = await supabase
     .from("teams")
-    .select("id, event_id, current_question, status, session_version")
+    .select("id, event_id, current_question, status, session_version, test_access")
     .eq("id", session.teamId)
     .maybeSingle();
 
@@ -29,7 +29,13 @@ export async function GET() {
     .eq("id", team.event_id)
     .maybeSingle();
 
-  const effectiveStatus = event ? effectiveEventStatus(event.status, event.hunt_start_time) : null;
+  // A test_access team bypasses the hunt_start_time gate entirely (organizer
+  // dry-run) — every other team is still gated by the normal auto-live clock.
+  const effectiveStatus = team.test_access
+    ? "LIVE"
+    : event
+    ? effectiveEventStatus(event.status, event.hunt_start_time)
+    : null;
 
   if (effectiveStatus !== "LIVE") {
     const code =

@@ -11,7 +11,7 @@ export async function GET() {
 
   const { data: team } = await supabase
     .from("teams")
-    .select("id, event_id, team_name, current_question, questions_completed, status, session_version")
+    .select("id, event_id, team_name, current_question, questions_completed, status, session_version, test_access")
     .eq("id", session.teamId)
     .maybeSingle();
 
@@ -34,6 +34,8 @@ export async function GET() {
     questionsCompleted: team.questions_completed,
     totalQuestions: event.total_questions,
     status: team.status,
-    eventStatus: effectiveEventStatus(event.status, event.hunt_start_time)
+    // A test_access team (organizer dry-run) always sees LIVE, bypassing
+    // hunt_start_time — every other team gets the normal auto-live clock.
+    eventStatus: team.test_access ? "LIVE" : effectiveEventStatus(event.status, event.hunt_start_time)
   });
 }
