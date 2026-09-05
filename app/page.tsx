@@ -1,5 +1,6 @@
 import { PublicHeader } from "@/components/public-header";
 import { Hero } from "@/components/hero";
+import { PrizePool } from "@/components/prize-pool";
 import { HowToPlay } from "@/components/how-to-play";
 import { StatsStrip } from "@/components/stats-strip";
 import { LeaderboardPreview } from "@/components/leaderboard-preview";
@@ -11,6 +12,7 @@ export default function HomePage() {
       <PublicHeader />
       <main>
         <Hero />
+        <PrizePool />
         <HowToPlay />
         <StatsStrip />
         <LeaderboardPreview />
