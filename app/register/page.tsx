@@ -1,32 +1,49 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PublicHeader } from "@/components/public-header";
 import { PrimaryButton } from "@/components/ui";
-import { isValidBitsId, isValidTeamSize, isValidPin, BITS_ID_EXAMPLE as BITS_ID_SAMPLE } from "@/lib/validation";
+import { isValidBitsId, isValidTeamSize, isValidPin } from "@/lib/validation";
 
 type Member = { name: string; bitsId: string };
 
-const BITS_ID_EXAMPLE = `e.g. ${BITS_ID_SAMPLE}`;
-
 export default function RegisterPage() {
   const router = useRouter();
+  const [checkingSession, setCheckingSession] = useState(true);
   const [teamName, setTeamName] = useState("");
   const [leaderName, setLeaderName] = useState("");
   const [leaderBitsId, setLeaderBitsId] = useState("");
   const [contactNumber, setContactNumber] = useState("");
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
-  // Leader + 2 required members to start; up to 2 more optional (team size 3-5 total).
-  const [members, setMembers] = useState<Member[]>([
-    { name: "", bitsId: "" },
-    { name: "", bitsId: "" }
-  ]);
+  // Leader + 1 required member to start; up to 3 more optional (team size 2-5 total).
+  const [members, setMembers] = useState<Member[]>([{ name: "", bitsId: "" }]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Already resumed the hunt? Don't make them register again — only /logout
+  // should ever land someone back on register/login.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/team", { cache: "no-store" });
+        if (!cancelled && res?.ok) {
+          router.replace("/hunt");
+          return;
+        }
+      } catch {
+        // fall through to showing the form
+      }
+      if (!cancelled) setCheckingSession(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   function updateMember(index: number, key: keyof Member, value: string) {
     setMembers((prev) => prev.map((m, i) => (i === index ? { ...m, [key]: value } : m)));
@@ -37,7 +54,7 @@ export default function RegisterPage() {
   }
 
   function removeMember(index: number) {
-    setMembers((prev) => (prev.length > 2 ? prev.filter((_, i) => i !== index) : prev));
+    setMembers((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev));
   }
 
   function validate() {
@@ -45,7 +62,7 @@ export default function RegisterPage() {
     if (teamName.trim().length < 2) errs.teamName = "Enter a team name.";
     if (leaderName.trim().length < 2) errs.leaderName = "Enter the leader's name.";
     if (!isValidBitsId(leaderBitsId)) {
-      errs.leaderBITSID = `Format should look like ${BITS_ID_EXAMPLE}.`;
+      errs.leaderBITSID = "Enter the leader's BITS ID.";
     }
     if (contactNumber.trim().length < 6) errs.contactNumber = "Enter a valid contact number.";
     if (!isValidPin(pin)) errs.pin = "PIN must be exactly 4 digits.";
@@ -53,7 +70,7 @@ export default function RegisterPage() {
 
     const filledMembers = members.filter((m) => m.name.trim() || m.bitsId.trim());
     if (!isValidTeamSize(filledMembers.length)) {
-      errs.members = "Teams need 3-5 members total (leader + 2-4 more).";
+      errs.members = "Teams need 2-5 members total (leader + 1-4 more).";
     }
     members.forEach((m, i) => {
       if (m.name.trim() && !m.bitsId.trim()) errs[`member-${i}`] = "Add this member's BITS ID.";
@@ -94,7 +111,7 @@ export default function RegisterPage() {
       if (data.code === "DUPLICATE_REGISTRATION") {
         setError("This leader's BITS ID is already registered. Resume with your existing team instead.");
       } else if (data.code === "INVALID_BITS_ID") {
-        setError(data.message ?? `Leader BITS ID format looks wrong. ${BITS_ID_EXAMPLE}.`);
+        setError(data.message ?? "Enter the leader's BITS ID.");
       } else if (data.code === "INVALID_PIN") {
         setError("PIN must be exactly 4 digits.");
       } else if (data.code === "REGISTRATION_CLOSED") {
@@ -106,7 +123,21 @@ export default function RegisterPage() {
       return;
     }
 
-    router.push("/login?registered=1");
+    // Registration already creates the session server-side — go straight
+    // into the hunt instead of asking them to log in a second time.
+    router.push("/hunt");
+    router.refresh();
+  }
+
+  if (checkingSession) {
+    return (
+      <>
+        <PublicHeader />
+        <main className="flex min-h-[calc(100vh-72px)] items-center justify-center text-muted">
+          Loading…
+        </main>
+      </>
+    );
   }
 
   return (
@@ -128,7 +159,7 @@ export default function RegisterPage() {
             <div className="mx-auto w-full max-w-xl">
               <p className="text-sm font-black uppercase tracking-[.22em] text-gold">Registration</p>
               <h2 className="mt-3 text-4xl font-black">ASSEMBLE YOUR CREW</h2>
-              <p className="mt-3 text-muted">Register your team of 3-5 before entering the hunt.</p>
+              <p className="mt-3 text-muted">Register your team of 2-5 before entering the hunt.</p>
 
               <form className="mt-8 space-y-4" onSubmit={submit} noValidate>
                 <label className="block">
@@ -159,14 +190,12 @@ export default function RegisterPage() {
                   <span className="mb-2 block text-sm font-bold text-muted">Leader BITS ID</span>
                   <input
                     value={leaderBitsId}
-                    onChange={(e) => setLeaderBitsId(e.target.value.toUpperCase())}
+                    onChange={(e) => setLeaderBitsId(e.target.value)}
                     required
-                    autoCapitalize="characters"
                     aria-invalid={!!fieldErrors.leaderBITSID}
-                    placeholder={BITS_ID_EXAMPLE}
+                    placeholder="Enter it however you like"
                     className="min-h-14 w-full rounded-2xl border border-white/10 bg-panel px-4 outline-none focus:border-gold/60"
                   />
-                  <p className="mt-1 text-xs text-muted">Format: {BITS_ID_EXAMPLE}</p>
                   {fieldErrors.leaderBITSID && <p className="mt-1 text-xs font-bold text-red-300">{fieldErrors.leaderBITSID}</p>}
                 </label>
 
@@ -239,11 +268,11 @@ export default function RegisterPage() {
                         />
                         <input
                           value={member.bitsId}
-                          onChange={(e) => updateMember(index, "bitsId", e.target.value.toUpperCase())}
+                          onChange={(e) => updateMember(index, "bitsId", e.target.value)}
                           placeholder={`Member ${index + 2} BITS ID`}
                           className="min-h-14 rounded-2xl border border-white/10 bg-panel px-4 outline-none focus:border-gold/60"
                         />
-                        {members.length > 2 && (
+                        {members.length > 1 && (
                           <button
                             type="button"
                             onClick={() => removeMember(index)}

@@ -8,11 +8,34 @@ import { PrimaryButton } from "@/components/ui";
 
 export default function LoginPage() {
   const router = useRouter();
+  const [checkingSession, setCheckingSession] = useState(true);
   const [identifier, setIdentifier] = useState("");
   const [pin, setPin] = useState("");
   const [message, setMessage] = useState("");
   const [tone, setTone] = useState<"success" | "warn" | "error">("error");
   const [loading, setLoading] = useState(false);
+
+  // Already logged in? Skip straight to the hunt — only /logout should ever
+  // send someone back to this screen.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/team", { cache: "no-store" });
+        if (!cancelled && res?.ok) {
+          const next = new URLSearchParams(window.location.search).get("next");
+          router.replace(next && next.startsWith("/") ? next : "/hunt");
+          return;
+        }
+      } catch {
+        // fall through to showing the form
+      }
+      if (!cancelled) setCheckingSession(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -50,6 +73,17 @@ export default function LoginPage() {
     const next = new URLSearchParams(window.location.search).get("next");
     router.replace(next && next.startsWith("/") ? next : "/hunt");
     router.refresh();
+  }
+
+  if (checkingSession) {
+    return (
+      <>
+        <PublicHeader />
+        <main className="flex min-h-[calc(100vh-72px)] items-center justify-center text-muted">
+          Loading…
+        </main>
+      </>
+    );
   }
 
   return (

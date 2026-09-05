@@ -34,11 +34,12 @@ create table if not exists teams (
   event_id uuid not null references events(id) on delete cascade,
   team_name text not null,
   leader_name text not null,
-  leader_bits_id text not null
-    check (leader_bits_id ~ '^202[0-9][A-Z]\d[A-Z]{2}\d{4}[A-Z]$'),
+  -- No format restriction by organizer request — teams enter their BITS ID however they like.
+  leader_bits_id text not null,
   login_code text not null check (login_code ~ '^\d{4}$'),
+  -- Leader + 1-4 additional members = team size 2-5.
   members jsonb not null default '[]'::jsonb
-    check (jsonb_array_length(members) between 2 and 4),
+    check (jsonb_array_length(members) between 1 and 4),
   contact_number text,
   current_question integer not null default 1,
   questions_completed integer not null default 0,

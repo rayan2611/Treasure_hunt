@@ -80,8 +80,12 @@ export default function FinishPage() {
           You followed every trail. Now report to the final location / organizers.
         </p>
 
-        <p className="mt-6 inline-block rounded-full border border-gold/40 px-5 py-2 text-sm font-black uppercase tracking-[.14em] text-gold">
-          Prize: XYZ
+        <p className="mt-6 inline-flex flex-wrap justify-center gap-x-3 gap-y-1 rounded-full border border-gold/40 px-5 py-2 text-sm font-black uppercase tracking-[.14em] text-gold">
+          <span>1st ₹2,100</span>
+          <span className="text-muted">·</span>
+          <span>2nd ₹1,100</span>
+          <span className="text-muted">·</span>
+          <span>3rd ₹500</span>
         </p>
 
         <div>

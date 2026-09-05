@@ -5,17 +5,17 @@ const steps = [
   {
     icon: Flag,
     title: "FORM YOUR TEAM",
-    body: "Register once using your team leader's BITS ID."
+    body: "Register a team of 2-5 once, using your team leader's BITS ID."
   },
   {
     icon: KeyRound,
-    title: "CRACK THE CLUE",
-    body: "Solve only the challenge currently unlocked for your team."
+    title: "FIND & SCAN",
+    body: "Each riddle points you to a physical checkpoint — scan the QR code you find there."
   },
   {
     icon: LockOpen,
     title: "UNLOCK THE NEXT",
-    body: "A correct answer opens the next stage automatically."
+    body: "Enter the one-time code the scan gives you to open the next stage automatically."
   }
 ];
 
@@ -26,7 +26,7 @@ export function HowToPlay() {
         <SectionTitle
           eyebrow="The rules are simple"
           title="HOW TO PLAY"
-          description="Register → Solve → Unlock → Race → Treasure"
+          description="Register → Scan → Unlock → Race → Treasure"
         />
         <div className="grid gap-5 md:grid-cols-3">
           {steps.map(({ icon: Icon, title, body }, index) => (

@@ -28,10 +28,11 @@ export function Hero() {
             View Live Leaderboard →
           </a>
 
-          <div className="mt-16 grid max-w-2xl grid-cols-3 gap-5 border-t border-white/10 pt-6">
+          <div className="mt-16 grid max-w-2xl grid-cols-2 gap-5 border-t border-white/10 pt-6 sm:grid-cols-4">
             {[
               ["08", "Clues"],
-              ["01", "Treasure"],
+              ["2-5", "Per Team"],
+              ["₹2,100", "Top Prize"],
               ["ONE", "Winner"]
             ].map(([value, label]) => (
               <div key={label}>

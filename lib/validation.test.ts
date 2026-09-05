@@ -2,33 +2,28 @@ import { describe, it, expect } from "vitest";
 import { isValidBitsId, isValidTeamSize, isValidPin } from "./validation";
 
 describe("isValidBitsId", () => {
-  it("accepts the canonical format", () => {
+  it("has no format restriction — accepts any non-empty value", () => {
     expect(isValidBitsId("2023A7PS1234P")).toBe(true);
-    expect(isValidBitsId("2020B4PS0001A")).toBe(true);
+    expect(isValidBitsId("some random id 123")).toBe(true);
+    expect(isValidBitsId("  padded  ")).toBe(true);
   });
 
-  it("is case-insensitive on the letters", () => {
-    expect(isValidBitsId("2023a7ps1234p")).toBe(true);
-  });
-
-  it("rejects malformed IDs", () => {
-    expect(isValidBitsId("2023A7PS1234")).toBe(false); // missing trailing letter
-    expect(isValidBitsId("1234567890123")).toBe(false); // all digits
-    expect(isValidBitsId("2023A7PS12345P")).toBe(false); // too many digits
+  it("rejects empty/whitespace-only values", () => {
     expect(isValidBitsId("")).toBe(false);
+    expect(isValidBitsId("   ")).toBe(false);
   });
 });
 
 describe("isValidTeamSize", () => {
-  it("accepts 2-4 additional members (team size 3-5)", () => {
+  it("accepts 1-4 additional members (team size 2-5)", () => {
+    expect(isValidTeamSize(1)).toBe(true);
     expect(isValidTeamSize(2)).toBe(true);
     expect(isValidTeamSize(3)).toBe(true);
     expect(isValidTeamSize(4)).toBe(true);
   });
 
-  it("rejects team sizes outside 3-5 total", () => {
+  it("rejects team sizes outside 2-5 total", () => {
     expect(isValidTeamSize(0)).toBe(false);
-    expect(isValidTeamSize(1)).toBe(false);
     expect(isValidTeamSize(5)).toBe(false);
   });
 });
