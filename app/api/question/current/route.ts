@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { readTeamSession } from "@/lib/team-session";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { effectiveEventStatus } from "@/lib/event-status";
 
 export async function GET() {
   const session = await readTeamSession();
@@ -24,14 +25,16 @@ export async function GET() {
 
   const { data: event } = await supabase
     .from("events")
-    .select("status")
+    .select("status, hunt_start_time")
     .eq("id", team.event_id)
     .maybeSingle();
 
-  if (event?.status !== "LIVE") {
+  const effectiveStatus = event ? effectiveEventStatus(event.status, event.hunt_start_time) : null;
+
+  if (effectiveStatus !== "LIVE") {
     const code =
-      event?.status === "PAUSED" ? "EVENT_PAUSED" :
-      event?.status === "ENDED" ? "EVENT_ENDED" :
+      effectiveStatus === "PAUSED" ? "EVENT_PAUSED" :
+      effectiveStatus === "ENDED" ? "EVENT_ENDED" :
       "EVENT_NOT_STARTED";
     return NextResponse.json({ code }, { status: 403 });
   }

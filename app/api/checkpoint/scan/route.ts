@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { isRateLimited } from "@/lib/rate-limit";
 import { generateCheckpointCode } from "@/lib/checkpoint-code";
 import { CHECKPOINT_CODE_TTL_MS } from "@/lib/checkpoint-secret";
+import { effectiveEventStatus } from "@/lib/event-status";
 
 const Payload = z.object({
   checkpointSecret: z.string().min(1).max(200)
@@ -45,14 +46,16 @@ export async function POST(request: Request) {
 
   const { data: event } = await supabase
     .from("events")
-    .select("status")
+    .select("status, hunt_start_time")
     .eq("id", team.event_id)
     .maybeSingle();
 
-  if (event?.status !== "LIVE") {
+  const effectiveStatus = event ? effectiveEventStatus(event.status, event.hunt_start_time) : null;
+
+  if (effectiveStatus !== "LIVE") {
     const code =
-      event?.status === "PAUSED" ? "EVENT_PAUSED" :
-      event?.status === "ENDED" ? "EVENT_ENDED" :
+      effectiveStatus === "PAUSED" ? "EVENT_PAUSED" :
+      effectiveStatus === "ENDED" ? "EVENT_ENDED" :
       "EVENT_NOT_STARTED";
     return NextResponse.json({ code }, { status: 403 });
   }

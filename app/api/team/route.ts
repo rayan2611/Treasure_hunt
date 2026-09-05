@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { readTeamSession } from "@/lib/team-session";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { effectiveEventStatus } from "@/lib/event-status";
 
 export async function GET() {
   const session = await readTeamSession();
@@ -20,7 +21,7 @@ export async function GET() {
 
   const { data: event } = await supabase
     .from("events")
-    .select("status, total_questions")
+    .select("status, total_questions, hunt_start_time")
     .eq("id", team.event_id)
     .maybeSingle();
 
@@ -33,6 +34,6 @@ export async function GET() {
     questionsCompleted: team.questions_completed,
     totalQuestions: event.total_questions,
     status: team.status,
-    eventStatus: event.status
+    eventStatus: effectiveEventStatus(event.status, event.hunt_start_time)
   });
 }
