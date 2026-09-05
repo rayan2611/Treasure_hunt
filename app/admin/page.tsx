@@ -27,14 +27,35 @@ type AdminQuestion = {
   is_active: boolean;
 };
 
+type CheckpointSheetEntry = {
+  questionId: string;
+  questionNumber: number;
+  label: string;
+  url: string;
+  qrDataUrl: string;
+};
+
+type CheckpointCodeRow = {
+  id: string;
+  code: string;
+  issuedAt: string;
+  expiresAt: string;
+  usedAt: string | null;
+  status: string;
+  teamName: string;
+  questionNumber: number | null;
+};
+
 const EVENT_STATUSES = ["DRAFT", "REGISTRATION", "LIVE", "PAUSED", "ENDED"] as const;
 
 export default function AdminPage() {
   const supabase = useMemo(() => supabaseBrowser(), []);
   const [token, setToken] = useState<string | null>(null);
-  const [tab, setTab] = useState<"teams" | "questions" | "event">("teams");
+  const [tab, setTab] = useState<"teams" | "questions" | "checkpoints" | "event">("teams");
   const [teams, setTeams] = useState<AdminTeam[]>([]);
   const [questions, setQuestions] = useState<AdminQuestion[]>([]);
+  const [checkpointSheet, setCheckpointSheet] = useState<CheckpointSheetEntry[]>([]);
+  const [checkpointCodes, setCheckpointCodes] = useState<CheckpointCodeRow[]>([]);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -84,9 +105,49 @@ export default function AdminPage() {
     setQuestions(data.questions ?? []);
   }
 
+  async function loadCheckpointSheet() {
+    if (!token) return;
+    const res = await fetch("/api/admin/checkpoints/qr-sheet", { headers: authHeaders() });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setError(data.message ?? "Could not load QR sheet.");
+      return;
+    }
+    setCheckpointSheet(data.checkpoints ?? []);
+  }
+
+  async function loadCheckpointCodes() {
+    if (!token) return;
+    const res = await fetch("/api/admin/checkpoints/codes", { headers: authHeaders() });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setError(data.message ?? "Could not load checkpoint codes.");
+      return;
+    }
+    setCheckpointCodes(data.codes ?? []);
+  }
+
+  async function regenerateSecret(questionId: string, questionNumber: number) {
+    if (!window.confirm(`Regenerate the QR secret for Checkpoint ${questionNumber}? The old printed QR will stop working immediately.`)) return;
+    setError("");
+    const res = await fetch(`/api/admin/checkpoints/${questionId}/regenerate-secret`, {
+      method: "POST",
+      headers: authHeaders()
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setError(data.message ?? "Could not regenerate secret.");
+      return;
+    }
+    setNotice(`Checkpoint ${questionNumber} secret regenerated.`);
+    loadCheckpointSheet();
+  }
+
   useEffect(() => {
     loadTeams();
     loadQuestions();
+    loadCheckpointSheet();
+    loadCheckpointCodes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
@@ -204,7 +265,7 @@ export default function AdminPage() {
       </div>
 
       <div className="mb-6 flex gap-2 border-b border-white/8">
-        {(["teams", "questions", "event"] as const).map((t) => (
+        {(["teams", "questions", "checkpoints", "event"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -290,6 +351,85 @@ export default function AdminPage() {
           {questions.length === 0 && (
             <p className="text-muted">No questions found. Run the seed script or add one via the API.</p>
           )}
+        </div>
+      )}
+
+      {tab === "checkpoints" && (
+        <div className="space-y-8">
+          <div className="rounded-3xl border border-white/10 bg-panel p-6">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-black">QR Sheet</h2>
+                <p className="mt-1 text-sm text-muted">
+                  Print and post one at each physical checkpoint. Labels are internal references only —
+                  nothing here reveals the riddle or its answer.
+                </p>
+              </div>
+              <button
+                onClick={() => window.print()}
+                className="min-h-12 rounded-full border border-gold/50 px-4 text-sm font-bold text-gold print:hidden"
+              >
+                Print Sheet
+              </button>
+            </div>
+
+            <div id="checkpoint-qr-sheet" className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4">
+              {checkpointSheet.map((c) => (
+                <div key={c.questionId} className="checkpoint-qr-card rounded-2xl border border-white/10 bg-ink p-4 text-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={c.qrDataUrl} alt="" className="mx-auto w-full max-w-[220px]" />
+                  <p className="mt-3 text-sm font-black">{c.label}</p>
+                  <button
+                    onClick={() => regenerateSecret(c.questionId, c.questionNumber)}
+                    className="mt-2 rounded-full border border-red-400/40 px-3 py-1 text-xs font-bold text-red-300 print:hidden"
+                  >
+                    Regenerate secret
+                  </button>
+                </div>
+              ))}
+              {checkpointSheet.length === 0 && (
+                <p className="col-span-full text-center text-muted">No checkpoints found.</p>
+              )}
+            </div>
+          </div>
+
+          <div className="overflow-x-auto rounded-2xl border border-white/8">
+            <div className="flex items-center justify-between border-b border-white/8 p-4">
+              <h2 className="text-lg font-black">Scan / Code Audit</h2>
+              <button onClick={loadCheckpointCodes} className="rounded-full border border-white/10 px-3 py-1 text-xs font-bold">
+                Refresh
+              </button>
+            </div>
+            <table className="w-full min-w-[900px] bg-panel text-left text-sm">
+              <thead className="border-b border-white/8 text-muted">
+                <tr>
+                  <th className="p-4">Issued</th>
+                  <th className="p-4">Expires</th>
+                  <th className="p-4">Used</th>
+                  <th className="p-4">Status</th>
+                  <th className="p-4">Team</th>
+                  <th className="p-4">Checkpoint</th>
+                </tr>
+              </thead>
+              <tbody>
+                {checkpointCodes.map((row) => (
+                  <tr key={row.id} className="border-b border-white/5">
+                    <td className="p-4">{new Date(row.issuedAt).toLocaleString()}</td>
+                    <td className="p-4">{new Date(row.expiresAt).toLocaleString()}</td>
+                    <td className="p-4">{row.usedAt ? new Date(row.usedAt).toLocaleString() : "—"}</td>
+                    <td className="p-4">{row.status}</td>
+                    <td className="p-4">{row.teamName}</td>
+                    <td className="p-4">{row.questionNumber ?? "—"}</td>
+                  </tr>
+                ))}
+                {checkpointCodes.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-muted">No checkpoint scans yet.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

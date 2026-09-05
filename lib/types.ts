@@ -37,3 +37,16 @@ export type CurrentQuestion = {
   questionText: string;
   mediaUrl: string | null;
 };
+
+export type CheckpointScanResult = {
+  code: string;
+  expiresAt: string;
+};
+
+export type CheckpointVerifyResult = {
+  correct: boolean;
+  code: string;
+  currentQuestion?: number;
+  questionsCompleted?: number;
+  finished?: boolean;
+};

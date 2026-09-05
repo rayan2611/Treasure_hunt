@@ -90,6 +90,30 @@ h1, h2, h3, h4, h5, h6 {
   animation: confetti-fall linear forwards;
 }
 
+/* Admin checkpoints tab: printing the QR sheet should show only the sheet
+   itself (not the dashboard chrome, tables, or action buttons around it). */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #checkpoint-qr-sheet,
+  #checkpoint-qr-sheet * {
+    visibility: visible;
+  }
+  #checkpoint-qr-sheet {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  .checkpoint-qr-card {
+    break-inside: avoid;
+    border-color: #000 !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

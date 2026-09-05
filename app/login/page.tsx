@@ -47,7 +47,8 @@ export default function LoginPage() {
       return;
     }
 
-    router.replace("/hunt");
+    const next = new URLSearchParams(window.location.search).get("next");
+    router.replace(next && next.startsWith("/") ? next : "/hunt");
     router.refresh();
   }
 
