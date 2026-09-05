@@ -186,7 +186,7 @@ begin
   from checkpoint_codes
   where team_id = p_team_id
     and question_id = v_question.id
-    and code = p_code
+    and checkpoint_codes.code = p_code
     and status = 'ACTIVE';
 
   if not found then
