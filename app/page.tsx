@@ -21,7 +21,7 @@ export default function HomePage() {
           <h2 className="text-4xl font-black sm:text-5xl">THINK YOU CAN FIND IT?</h2>
           <p className="mx-auto mt-4 max-w-lg text-muted">The trail is waiting.</p>
           <div className="mt-7">
-            <PrimaryButton href="/login">Enter the Hunt</PrimaryButton>
+            <PrimaryButton href="/register">Enter the Hunt</PrimaryButton>
           </div>
         </section>
       </main>

@@ -19,7 +19,7 @@ export function PublicHeader() {
           <Link href="/#how">How to Play</Link>
           <Link href="/leaderboard">Leaderboard</Link>
           <Link href="/rules">Rules</Link>
-          <PrimaryButton href="/login">Enter the Hunt</PrimaryButton>
+          <PrimaryButton href="/register">Enter the Hunt</PrimaryButton>
         </nav>
 
         <button className="md:hidden" onClick={() => setOpen(!open)} aria-label="Toggle menu">
@@ -33,7 +33,7 @@ export function PublicHeader() {
             <Link href="/#how" onClick={() => setOpen(false)}>How to Play</Link>
             <Link href="/leaderboard" onClick={() => setOpen(false)}>Leaderboard</Link>
             <Link href="/rules" onClick={() => setOpen(false)}>Rules</Link>
-            <PrimaryButton href="/login">Enter the Hunt</PrimaryButton>
+            <PrimaryButton href="/register">Enter the Hunt</PrimaryButton>
           </div>
         </nav>
       )}

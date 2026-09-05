@@ -193,7 +193,6 @@ export default function RegisterPage() {
                     onChange={(e) => setLeaderBitsId(e.target.value)}
                     required
                     aria-invalid={!!fieldErrors.leaderBITSID}
-                    placeholder="Enter it however you like"
                     className="min-h-14 w-full rounded-2xl border border-white/10 bg-panel px-4 outline-none focus:border-gold/60"
                   />
                   {fieldErrors.leaderBITSID && <p className="mt-1 text-xs font-bold text-red-300">{fieldErrors.leaderBITSID}</p>}
