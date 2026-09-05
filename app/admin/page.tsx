@@ -1,7 +1,15 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/browser";
+
+// Never statically prerendered: this page is entirely client-rendered and
+// depends on browser-only Supabase env vars — forcing it dynamic keeps
+// Next.js from attempting a build-time export pass that would otherwise
+// fail before those vars are relevant.
+export const dynamic = "force-dynamic";
+
+type SupabaseBrowserClient = ReturnType<typeof supabaseBrowser>;
 
 type AdminTeam = {
   id: string;
@@ -49,7 +57,9 @@ type CheckpointCodeRow = {
 const EVENT_STATUSES = ["DRAFT", "REGISTRATION", "LIVE", "PAUSED", "ENDED"] as const;
 
 export default function AdminPage() {
-  const supabase = useMemo(() => supabaseBrowser(), []);
+  // Created lazily on mount, never during a build-time render — supabaseBrowser()
+  // reads NEXT_PUBLIC_* env vars that only matter for actual browser sessions.
+  const [supabase, setSupabase] = useState<SupabaseBrowserClient | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [tab, setTab] = useState<"teams" | "questions" | "checkpoints" | "event">("teams");
   const [teams, setTeams] = useState<AdminTeam[]>([]);
@@ -60,6 +70,11 @@ export default function AdminPage() {
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
+    setSupabase(supabaseBrowser());
+  }, []);
+
+  useEffect(() => {
+    if (!supabase) return;
     supabase.auth.getSession().then(({ data }) => {
       setToken(data.session?.access_token ?? null);
     });
@@ -71,6 +86,7 @@ export default function AdminPage() {
 
   async function login(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!supabase) return;
     const form = new FormData(e.currentTarget);
     const email = String(form.get("email") ?? "");
     const password = String(form.get("password") ?? "");
