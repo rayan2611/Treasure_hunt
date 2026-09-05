@@ -5,12 +5,15 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PublicHeader } from "@/components/public-header";
 import { PrimaryButton } from "@/components/ui";
+import { CountdownTimer } from "@/components/countdown-timer";
+import { useHuntLaunch } from "@/lib/use-hunt-launch";
 import { isValidBitsId, isValidTeamSize, isValidPin } from "@/lib/validation";
 
 type Member = { name: string; bitsId: string };
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { loaded: launchLoaded, locked: huntLocked, huntStartTime } = useHuntLaunch();
   const [checkingSession, setCheckingSession] = useState(true);
   const [teamName, setTeamName] = useState("");
   const [leaderName, setLeaderName] = useState("");
@@ -127,6 +130,26 @@ export default function RegisterPage() {
     // into the hunt instead of asking them to log in a second time.
     router.push("/hunt");
     router.refresh();
+  }
+
+  if (launchLoaded && huntLocked) {
+    return (
+      <>
+        <PublicHeader />
+        <main className="hero-bg game-grid flex min-h-[calc(100vh-72px)] items-center justify-center px-5 py-12 text-center">
+          <div className="glass max-w-xl rounded-3xl p-8 sm:p-10">
+            <p className="text-sm font-black uppercase tracking-[.24em] text-gold">Registration opens soon</p>
+            <h1 className="mt-3 text-3xl font-black sm:text-4xl">THE HUNT HASN&apos;T STARTED YET.</h1>
+            <p className="mt-3 text-muted">Registration unlocks the moment the hunt begins.</p>
+            {huntStartTime && (
+              <div className="mt-7">
+                <CountdownTimer target={huntStartTime} />
+              </div>
+            )}
+          </div>
+        </main>
+      </>
+    );
   }
 
   if (checkingSession) {

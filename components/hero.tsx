@@ -1,4 +1,6 @@
-import { PrimaryButton, SecondaryButton } from "@/components/ui";
+"use client";
+
+import { GatedEntryButton } from "@/components/gated-entry-button";
 
 export function Hero() {
   return (
@@ -20,8 +22,8 @@ export function Hero() {
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <PrimaryButton href="/register">Register Team</PrimaryButton>
-            <SecondaryButton href="/login">Resume Hunt</SecondaryButton>
+            <GatedEntryButton href="/register">Register Team</GatedEntryButton>
+            <GatedEntryButton href="/login" variant="secondary">Resume Hunt</GatedEntryButton>
           </div>
 
           <a href="/leaderboard" className="mt-6 inline-block text-sm font-bold text-warm/80 hover:text-gold">

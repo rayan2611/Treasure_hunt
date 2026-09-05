@@ -5,9 +5,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PublicHeader } from "@/components/public-header";
 import { PrimaryButton } from "@/components/ui";
+import { CountdownTimer } from "@/components/countdown-timer";
+import { useHuntLaunch } from "@/lib/use-hunt-launch";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { loaded: launchLoaded, locked: huntLocked, huntStartTime } = useHuntLaunch();
   const [checkingSession, setCheckingSession] = useState(true);
   const [identifier, setIdentifier] = useState("");
   const [pin, setPin] = useState("");
@@ -73,6 +76,26 @@ export default function LoginPage() {
     const next = new URLSearchParams(window.location.search).get("next");
     router.replace(next && next.startsWith("/") ? next : "/hunt");
     router.refresh();
+  }
+
+  if (launchLoaded && huntLocked) {
+    return (
+      <>
+        <PublicHeader />
+        <main className="hero-bg game-grid flex min-h-[calc(100vh-72px)] items-center justify-center px-5 py-12 text-center">
+          <div className="glass max-w-xl rounded-3xl p-8 sm:p-10">
+            <p className="text-sm font-black uppercase tracking-[.24em] text-gold">Resume opens soon</p>
+            <h1 className="mt-3 text-3xl font-black sm:text-4xl">THE HUNT HASN&apos;T STARTED YET.</h1>
+            <p className="mt-3 text-muted">You'll be able to resume the moment the hunt begins.</p>
+            {huntStartTime && (
+              <div className="mt-7">
+                <CountdownTimer target={huntStartTime} />
+              </div>
+            )}
+          </div>
+        </main>
+      </>
+    );
   }
 
   if (checkingSession) {
