@@ -3,7 +3,15 @@ import { PrimaryButton, SecondaryButton } from "@/components/ui";
 export function Hero() {
   return (
     <section className="hero-bg game-grid relative min-h-[88vh] overflow-hidden">
-      <div className="mx-auto flex min-h-[88vh] max-w-7xl items-center px-5 py-20">
+      {/* Decorative only — purely visual, never affects layout/functionality. */}
+      <img
+        src="/krishna-flute.jpg"
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 right-0 hidden h-full w-[560px] object-cover object-top opacity-80 [mask-image:linear-gradient(to_right,transparent,black_35%)] lg:block"
+      />
+
+      <div className="relative mx-auto flex min-h-[88vh] max-w-7xl items-center px-5 py-20">
         <div className="max-w-3xl">
           <p className="mb-4 text-sm font-black uppercase tracking-[.28em] text-gold">
             Janmashtami 2026 • BITS
