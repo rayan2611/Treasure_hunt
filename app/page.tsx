@@ -4,7 +4,7 @@ import { PrizePool } from "@/components/prize-pool";
 import { HowToPlay } from "@/components/how-to-play";
 import { StatsStrip } from "@/components/stats-strip";
 import { LeaderboardPreview } from "@/components/leaderboard-preview";
-import { GatedEntryButton } from "@/components/gated-entry-button";
+import { PrimaryButton } from "@/components/ui";
 
 export default function HomePage() {
   return (
@@ -21,7 +21,7 @@ export default function HomePage() {
           <h2 className="text-4xl font-black sm:text-5xl">THINK YOU CAN FIND IT?</h2>
           <p className="mx-auto mt-4 max-w-lg text-muted">The trail is waiting.</p>
           <div className="mt-7">
-            <GatedEntryButton href="/register">Enter the Hunt</GatedEntryButton>
+            <PrimaryButton href="/register">Enter the Hunt</PrimaryButton>
           </div>
         </section>
       </main>

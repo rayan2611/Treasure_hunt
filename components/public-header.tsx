@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
-import { GatedEntryButton } from "@/components/gated-entry-button";
+import { PrimaryButton } from "@/components/ui";
 
 export function PublicHeader() {
   const [open, setOpen] = useState(false);
@@ -19,7 +19,7 @@ export function PublicHeader() {
           <Link href="/#how">How to Play</Link>
           <Link href="/leaderboard">Leaderboard</Link>
           <Link href="/rules">Rules</Link>
-          <GatedEntryButton href="/register">Enter the Hunt</GatedEntryButton>
+          <PrimaryButton href="/register">Enter the Hunt</PrimaryButton>
         </nav>
 
         <button className="md:hidden" onClick={() => setOpen(!open)} aria-label="Toggle menu">
@@ -33,7 +33,7 @@ export function PublicHeader() {
             <Link href="/#how" onClick={() => setOpen(false)}>How to Play</Link>
             <Link href="/leaderboard" onClick={() => setOpen(false)}>Leaderboard</Link>
             <Link href="/rules" onClick={() => setOpen(false)}>Rules</Link>
-            <GatedEntryButton href="/register">Enter the Hunt</GatedEntryButton>
+            <PrimaryButton href="/register">Enter the Hunt</PrimaryButton>
           </div>
         </nav>
       )}
